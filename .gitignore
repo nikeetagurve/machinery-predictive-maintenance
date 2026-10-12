@@ -1,0 +1,19 @@
+# Virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Raw NASA data - do not commit (NASA lists the license as "not specified")
+data/raw/CMAPSSData/*
+!data/raw/CMAPSSData/.gitkeep
+data/raw/*.zip
+data/processed/*
+!data/processed/.gitkeep
+
+# Misc
+.env
+.DS_Store
+Thumbs.db
