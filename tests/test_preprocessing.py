@@ -24,7 +24,7 @@ def test_validate_time_series_sorts_by_machine_and_time():
     )
 
     assert result["machine_id"].tolist() == ["A", "A", "B"]
-    assert result["timestamp"].is_monotonic_increasing is False
+    assert result.loc[0, "timestamp"] < result.loc[1, "timestamp"]
 
 
 def test_fill_sensor_missing_values_uses_previous_value_per_machine():
