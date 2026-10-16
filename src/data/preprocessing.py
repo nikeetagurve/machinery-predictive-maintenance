@@ -47,3 +47,38 @@ def fill_sensor_missing_values(
         )
 
     return result
+
+
+def validate_cycle_sequences(
+    df: pd.DataFrame,
+    machine_col: str,
+    cycle_col: str,
+) -> pd.DataFrame:
+    """Validate unique, consecutive operational cycles per machine."""
+    required = [machine_col, cycle_col]
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+
+    result = df.copy()
+    if result[required].isna().any().any():
+        raise ValueError("Machine IDs and cycles cannot be missing.")
+
+    result[cycle_col] = pd.to_numeric(result[cycle_col], errors="raise")
+
+    if (result[cycle_col] < 1).any():
+        raise ValueError("Cycles must be positive.")
+
+    if result.duplicated(required).any():
+        raise ValueError("Duplicate machine-cycle pairs found.")
+
+    result = result.sort_values(required).reset_index(drop=True)
+
+    for machine, group in result.groupby(machine_col, sort=False):
+        cycles = group[cycle_col].to_numpy()
+        if len(cycles) > 1 and (cycles[1:] - cycles[:-1] != 1).any():
+            raise ValueError(
+                f"Non-consecutive cycles found for machine {machine}."
+            )
+
+    return result
