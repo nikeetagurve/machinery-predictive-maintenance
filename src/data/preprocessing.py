@@ -22,11 +22,9 @@ def validate_time_series(
     if result[timestamp_col].isna().any():
         raise ValueError("Timestamps contain missing values.")
 
-    result = result.sort_values(
+    return result.sort_values(
         [machine_col, timestamp_col]
     ).reset_index(drop=True)
-
-    return result
 
 
 def fill_sensor_missing_values(
@@ -35,6 +33,9 @@ def fill_sensor_missing_values(
     sensor_cols: list[str],
 ) -> pd.DataFrame:
     """Fill sensor gaps using past observations only."""
+    if machine_col not in df.columns:
+        raise ValueError(f"Missing machine column: {machine_col}")
+
     result = df.copy()
 
     for col in sensor_cols:
@@ -46,4 +47,3 @@ def fill_sensor_missing_values(
         )
 
     return result
-v
