@@ -6,14 +6,6 @@
 .venv/
 venv/
 
-# macOS
-.DS_Store
-
-# Environment variables and virtual environments
-.env
-.venv/
-venv/
-
 # Python cache and test artifacts
 __pycache__/
 *.py[cod]
@@ -27,3 +19,4 @@ node_modules/
 
 # Raw datasets
 data/raw/
+data/train_FD001.txt
