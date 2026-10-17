@@ -1,23 +1,30 @@
-# Virtual environments and caches
+# macOS and miscellaneous
+.DS_Store
+Thumbs.db
+
+# Environment variables and virtual environments
+.env
 .venv/
 venv/
+
+# Python cache and test artifacts
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Raw NASA data - do not commit
+# Raw NASA datasets - do not commit
 data/raw/
 data/raw/CMAPSSData/*
 !data/raw/CMAPSSData/.gitkeep
 data/raw/*.zip
+data/train_FD001.txt
+
+# Processed data - do not commit
 data/processed/*
 !data/processed/.gitkeep
-
-# Misc
-.env
-.DS_Store
-Thumbs.db
 
 # JavaScript dependencies
 node_modules/
