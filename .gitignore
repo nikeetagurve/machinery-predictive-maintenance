@@ -1,10 +1,22 @@
-
+# macOS
 .DS_Store
+
+# Environment variables and virtual environments
 .env
 .venv/
 venv/
+
+# Python cache and test artifacts
 __pycache__/
 *.py[cod]
+.pytest_cache/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# Node.js
 node_modules/
+
+# Raw datasets
 data/raw/
+data/train_FD001.txt
