@@ -1,18 +1,15 @@
-# macOS and miscellaneous
+# macOS
 .DS_Store
-Thumbs.db
 
-# Environment variables and virtual environments
+# Environment variables and Python environments
 .env
 .venv/
 venv/
 
-# Python cache and test artifacts
+# Python cache and test files
 __pycache__/
 *.py[cod]
 .pytest_cache/
-
-# Jupyter checkpoints
 .ipynb_checkpoints/
 
 # Raw NASA datasets - do not commit
