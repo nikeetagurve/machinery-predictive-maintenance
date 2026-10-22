@@ -20,3 +20,4 @@ node_modules/
 # Raw datasets
 data/raw/
 data/train_FD001.txt
+data/processed/
