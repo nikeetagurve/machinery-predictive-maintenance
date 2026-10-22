@@ -26,7 +26,7 @@ Remaining Useful Life (RUL) = Final cycle - Current cycle
 ## Validation
 Six target-labeling tests passed.
 
-The full project test suite also passed: 32 tests.
+The full project test suite also passed: 36 tests.
 
 ## Limitations
 The current function is intended for complete run-to-failure training histories. Additional handling is required for truncated test histories and live prediction data.
