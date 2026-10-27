@@ -1,0 +1,5 @@
+model,engines,missed_engines,median_lead_cycles,min_lead_cycles,engines_with_early_alerts,median_first_alert_rul
+lr_raw24,15,0,24.0,22,15,39.0
+lr_eng242,15,0,24.0,20,12,30.0
+hgb_eng242,15,0,24.0,17,10,28.0
+hgb_eng166,15,0,24.0,20,10,28.0
