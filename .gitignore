@@ -25,3 +25,6 @@ data/processed/*
 
 # JavaScript dependencies
 node_modules/
+
+# Generated model inference outputs
+reports/streaming_predictions.csv
