@@ -50,5 +50,5 @@ Rows are actual labels; columns are predicted labels.
 - The engine-disjoint validation split was used for evaluation.
 - The test split was not used for fitting or model selection.
 - The 0.5 threshold is a starting point and has not been tuned.
-- Results depend on the random seed and this prototype's training configuration.
-- Compare these metrics with the Logistic Regression baseline; do not assume the GRU is better.
+- Model and preprocessing artifacts are saved in the artifacts directory.
+- Results depend on the random seed and training configuration.

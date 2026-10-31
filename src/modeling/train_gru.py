@@ -1,7 +1,9 @@
+
 """Train a GPU-enabled GRU prototype for NASA C-MAPSS FD001."""
 
 from pathlib import Path
 import random
+import joblib
 
 import numpy as np
 import pandas as pd
@@ -26,6 +28,11 @@ from src.data.temporal_split import temporal_train_val_test_split
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 METRICS_FILE = REPORTS_DIR / "gru_metrics.md"
 
+# Model artifacts
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
+MODEL_FILE = ARTIFACTS_DIR / "gru_model.pth"
+PREPROCESSOR_FILE = ARTIFACTS_DIR / "gru_preprocessing.joblib"
+
 MACHINE_COL = "unit_number"
 CYCLE_COL = "time_cycles"
 TARGET_COL = "target"
@@ -41,6 +48,7 @@ BATCH_SIZE = 64
 EPOCHS = 20
 LEARNING_RATE = 1e-3
 RANDOM_STATE = 42
+PREDICTION_THRESHOLD = 0.5
 
 
 class GRUClassifier(nn.Module):
@@ -48,16 +56,17 @@ class GRUClassifier(nn.Module):
 
     def __init__(self, input_size: int, hidden_size: int):
         super().__init__()
+
         self.gru = nn.GRU(
             input_size=input_size,
             hidden_size=hidden_size,
             num_layers=1,
             batch_first=True,
         )
+
         self.classifier = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
-        # x shape: (batch, sequence_length, number_of_features)
         output, _ = self.gru(x)
         last_hidden = output[:, -1, :]
         return self.classifier(last_hidden).squeeze(1)
@@ -73,15 +82,19 @@ def make_sequences(
     sequences = []
     labels = []
 
-    work = df[[MACHINE_COL, CYCLE_COL, TARGET_COL]].reset_index(drop=True)
+    work = df[
+        [MACHINE_COL, CYCLE_COL, TARGET_COL]
+    ].reset_index(drop=True)
 
     for _, group in work.groupby(MACHINE_COL, sort=True):
-        row_indices = group.index.to_numpy()
 
-        # Only consecutive cycles of the same engine form a sequence.
+        row_indices = group.index.to_numpy()
         cycles = group[CYCLE_COL].to_numpy()
+
         if len(cycles) > 1 and not np.all(np.diff(cycles) == 1):
-            raise ValueError("Non-consecutive cycles found within an engine.")
+            raise ValueError(
+                "Non-consecutive cycles found within an engine."
+            )
 
         if len(row_indices) < sequence_length:
             continue
@@ -91,20 +104,25 @@ def make_sequences(
             indices = row_indices[start:end + 1]
 
             sequences.append(features[indices])
-            labels.append(int(work.loc[row_indices[end], TARGET_COL]))
+
+            labels.append(
+                int(work.loc[row_indices[end], TARGET_COL])
+            )
 
     if not sequences:
         raise ValueError(
-            f"No sequences created. Need at least {sequence_length} cycles per engine."
+            f"No sequences created. Need at least "
+            f"{sequence_length} cycles per engine."
         )
 
     X = np.asarray(sequences, dtype=np.float32)
     y = np.asarray(labels, dtype=np.float32)
+
     return X, y
 
 
 def main() -> None:
-    """Train the GRU on CUDA when available and report validation metrics."""
+    """Train the GRU on CUDA when available and save artifacts."""
 
     random.seed(RANDOM_STATE)
     np.random.seed(RANDOM_STATE)
@@ -118,6 +136,7 @@ def main() -> None:
 
     print(f"PyTorch version: {torch.__version__}")
     print(f"Training device: {device}")
+
     if device.type == "cuda":
         print(f"GPU: {torch.cuda.get_device_name(0)}")
 
@@ -138,22 +157,31 @@ def main() -> None:
         val_ratio=0.15,
     )
 
-    # Fit preprocessing only on training rows to avoid validation/test leakage.
+    # Fit preprocessing only on training rows.
     imputer = SimpleImputer(strategy="median")
     scaler = StandardScaler()
 
-    X_train_rows = imputer.fit_transform(train[FEATURE_COLS])
+    X_train_rows = imputer.fit_transform(
+        train[FEATURE_COLS]
+    )
     X_train_rows = scaler.fit_transform(X_train_rows)
 
-    X_val_rows = scaler.transform(imputer.transform(val[FEATURE_COLS]))
-    X_test_rows = scaler.transform(imputer.transform(test[FEATURE_COLS]))
+    X_val_rows = scaler.transform(
+        imputer.transform(val[FEATURE_COLS])
+    )
+
+    X_test_rows = scaler.transform(
+        imputer.transform(test[FEATURE_COLS])
+    )
 
     X_train, y_train = make_sequences(
         train, X_train_rows, SEQUENCE_LENGTH
     )
+
     X_val, y_val = make_sequences(
         val, X_val_rows, SEQUENCE_LENGTH
     )
+
     X_test, y_test = make_sequences(
         test, X_test_rows, SEQUENCE_LENGTH
     )
@@ -166,6 +194,7 @@ def main() -> None:
         torch.from_numpy(X_train),
         torch.from_numpy(y_train),
     )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE,
@@ -183,37 +212,49 @@ def main() -> None:
     negatives = float(len(y_train) - positives)
 
     if positives == 0:
-        raise ValueError("Training sequences contain no positive labels.")
+        raise ValueError(
+            "Training sequences contain no positive labels."
+        )
 
-    # Compensate for class imbalance using training labels only.
     pos_weight = torch.tensor(
         [negatives / positives],
         dtype=torch.float32,
         device=device,
     )
 
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    criterion = nn.BCEWithLogitsLoss(
+        pos_weight=pos_weight
+    )
+
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=LEARNING_RATE,
     )
 
+    # Training loop
     for epoch in range(EPOCHS):
+
         model.train()
         total_loss = 0.0
         seen = 0
 
         for batch_X, batch_y in train_loader:
+
             batch_X = batch_X.to(
-                device, non_blocking=(device.type == "cuda")
+                device,
+                non_blocking=(device.type == "cuda"),
             )
+
             batch_y = batch_y.to(
-                device, non_blocking=(device.type == "cuda")
+                device,
+                non_blocking=(device.type == "cuda"),
             )
 
             optimizer.zero_grad(set_to_none=True)
+
             logits = model(batch_X)
             loss = criterion(logits, batch_y)
+
             loss.backward()
             optimizer.step()
 
@@ -225,23 +266,84 @@ def main() -> None:
             f"- loss: {total_loss / seen:.4f}"
         )
 
-    # Evaluate only on validation data; test remains reserved.
+    # =====================================================
+    # SAVE MODEL AND PREPROCESSING ARTIFACTS
+    # =====================================================
+
+    ARTIFACTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "input_size": len(FEATURE_COLS),
+            "hidden_size": HIDDEN_SIZE,
+            "sequence_length": SEQUENCE_LENGTH,
+            "feature_cols": FEATURE_COLS,
+            "prediction_threshold": PREDICTION_THRESHOLD,
+        },
+        MODEL_FILE,
+    )
+
+    joblib.dump(
+        {
+            "imputer": imputer,
+            "scaler": scaler,
+            "feature_cols": FEATURE_COLS,
+        },
+        PREPROCESSOR_FILE,
+    )
+
+    print("\nModel artifacts saved successfully!")
+    print(f"Model: {MODEL_FILE}")
+    print(f"Preprocessing: {PREPROCESSOR_FILE}")
+
+    # =====================================================
+    # VALIDATION
+    # =====================================================
+
     model.eval()
+
     val_tensor = torch.from_numpy(X_val).to(device)
 
     with torch.no_grad():
         val_logits = model(val_tensor)
-        val_probabilities = torch.sigmoid(val_logits).cpu().numpy()
 
-    y_pred = (val_probabilities >= 0.5).astype(np.int64)
+        val_probabilities = (
+            torch.sigmoid(val_logits).cpu().numpy()
+        )
+
+    y_pred = (
+        val_probabilities >= PREDICTION_THRESHOLD
+    ).astype(np.int64)
+
     y_true = y_val.astype(np.int64)
 
-    precision = precision_score(y_true, y_pred, zero_division=0)
-    recall = recall_score(y_true, y_pred, zero_division=0)
-    f1 = f1_score(y_true, y_pred, zero_division=0)
+    precision = precision_score(
+        y_true, y_pred, zero_division=0
+    )
+
+    recall = recall_score(
+        y_true, y_pred, zero_division=0
+    )
+
+    f1 = f1_score(
+        y_true, y_pred, zero_division=0
+    )
+
     accuracy = accuracy_score(y_true, y_pred)
-    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+
+    cm = confusion_matrix(
+        y_true, y_pred, labels=[0, 1]
+    )
+
     tn, fp, fn, tp = cm.ravel()
+
+    # =====================================================
+    # SAVE METRICS REPORT
+    # =====================================================
 
     report = f"""# GRU Prototype — NASA C-MAPSS FD001
 
@@ -259,7 +361,7 @@ def main() -> None:
 - Loss: BCEWithLogitsLoss with positive-class weighting
 - Device: {device}
 - Random state: {RANDOM_STATE}
-- Prediction threshold: 0.5
+- Prediction threshold: {PREDICTION_THRESHOLD}
 
 ## Split and sequence sizes
 
@@ -295,12 +397,19 @@ Rows are actual labels; columns are predicted labels.
 - The engine-disjoint validation split was used for evaluation.
 - The test split was not used for fitting or model selection.
 - The 0.5 threshold is a starting point and has not been tuned.
-- Results depend on the random seed and this prototype's training configuration.
-- Compare these metrics with the Logistic Regression baseline; do not assume the GRU is better.
+- Model and preprocessing artifacts are saved in the artifacts directory.
+- Results depend on the random seed and training configuration.
 """
 
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    METRICS_FILE.write_text(report, encoding="utf-8")
+    REPORTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    METRICS_FILE.write_text(
+        report,
+        encoding="utf-8",
+    )
 
     print("\nGRU training completed.")
     print(f"Device: {device}")
@@ -308,9 +417,14 @@ Rows are actual labels; columns are predicted labels.
     print(f"Recall:    {recall:.4f}")
     print(f"F1-score:  {f1:.4f}")
     print(f"Accuracy:  {accuracy:.4f}")
+
     print("\nConfusion matrix (actual rows, predicted columns):")
     print(cm)
-    print(f"\nReport saved to: {METRICS_FILE.relative_to(PROJECT_ROOT)}")
+
+    print(
+        f"\nReport saved to: "
+        f"{METRICS_FILE.relative_to(PROJECT_ROOT)}"
+    )
 
 
 if __name__ == "__main__":
