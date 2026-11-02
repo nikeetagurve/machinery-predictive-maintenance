@@ -1,0 +1,21 @@
+# Data exclusion policy - Raw & Processed heavy files
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# MLflow tracking backend databases & large binary run stores
+reports/mlruns/*
+!reports/mlruns/.gitkeep
+mlruns/
+*.sqlite
+
+# Large temporary checkpoints & python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# System and editor caches
+.DS_Store
+Thumbs.db
