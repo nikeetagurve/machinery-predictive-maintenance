@@ -1,0 +1,46 @@
+{
+  "status": "provisional",
+  "model": "lr_eng242",
+  "alert_threshold": 0.5,
+  "persistence_cycles": 2,
+  "horizon_cycles": 24,
+  "min_notice_cycles": 10,
+  "grace_cycles": 15,
+  "cost_ratio_assumed": 10,
+  "decision_data": "train engines, out-of-fold",
+  "safety_constraint_met": true,
+  "selection": "robust: stably safe across logistic-regression variants C=0.5,0.7,1.0,1.5,2.0",
+  "note": "Threshold is specific to this model's probability scale. Cycles are not hours.",
+  "variant_choices": [
+    {
+      "variant": "C=0.5",
+      "chosen_k": 3,
+      "chosen_threshold": 0.5,
+      "k2_first_unsafe_threshold": 0.75
+    },
+    {
+      "variant": "C=0.7",
+      "chosen_k": 2,
+      "chosen_threshold": 0.5,
+      "k2_first_unsafe_threshold": 0.75
+    },
+    {
+      "variant": "C=1.0",
+      "chosen_k": 2,
+      "chosen_threshold": 0.55,
+      "k2_first_unsafe_threshold": 0.7
+    },
+    {
+      "variant": "C=1.5",
+      "chosen_k": 2,
+      "chosen_threshold": 0.5,
+      "k2_first_unsafe_threshold": 0.65
+    },
+    {
+      "variant": "C=2.0",
+      "chosen_k": 2,
+      "chosen_threshold": 0.3,
+      "k2_first_unsafe_threshold": 0.65
+    }
+  ]
+}
