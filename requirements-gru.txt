@@ -1,0 +1,3 @@
+# Extra requirements for the GRU prototype and streaming alerts (src/modeling/predict.py).
+# Install after requirements.txt:  python -m pip install -r requirements-gru.txt
+torch>=2.0
