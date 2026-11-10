@@ -291,6 +291,8 @@ engineered features, using out-of-fold predictions on the 70 training engines, w
 | Model results | [reports/model_comparison.md](reports/model_comparison.md), [reports/baseline_metrics.md](reports/baseline_metrics.md), [reports/gru_metrics.md](reports/gru_metrics.md), [reports/baseline_gru_comparison.md](reports/baseline_gru_comparison.md), [reports/model_evaluation_summary.md](reports/model_evaluation_summary.md) |
 | Decisions | [reports/model_decision_record.md](reports/model_decision_record.md), [reports/week3_checkpoint.md](reports/week3_checkpoint.md) |
 | Threshold analysis | [reports/threshold_analysis.md](reports/threshold_analysis.md) |
+| Week 4 final report | [reports/final_week4_report.md](reports/final_week4_report.md) |
+| Demo checklist | [reports/demo_checklist.md](reports/demo_checklist.md) |
 
 **Team.** Nikeeta Gurve (team lead: integration, reviews), Veda M V (dataset, target, temporal split, threshold analysis),
 Aditya Bhosale (data pipeline, EDA, baseline, streaming prediction), Shankar Savalgi (preprocessing, features, tree model,
