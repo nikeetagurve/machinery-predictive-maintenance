@@ -28,3 +28,4 @@ node_modules/
 
 # Generated model inference outputs
 reports/streaming_predictions.csv
+reports/mlflow.db
